@@ -89,7 +89,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          gofmt -w $(find . -name '*.go' -not -path './.git/*')
+          git ls-files '*.go' | xargs gofmt -w
           git diff --check
           git diff --exit-code
 
@@ -109,7 +109,7 @@ jobs:
         run: go vet ./...
 
       - name: Vulnerability check
-        run: go run golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} ./...
+        run: go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./...
 
   build:
     name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
@@ -208,10 +208,14 @@ jobs:
               echo "NPM_TOKEN is required for npm release" >&2
               exit 1
             fi
-            npm whoami >/dev/null
+            if ! npm whoami >/dev/null 2>&1; then
+              echo "NPM_TOKEN is invalid for npm registry authentication" >&2
+              exit 1
+            fi
           fi
           pack_json="$(npm pack --dry-run --json)"
           echo "$pack_json"
+          # shellcheck disable=SC2016
           echo "$pack_json" | node -e '
             const fs = require("fs");
             const data = JSON.parse(fs.readFileSync(0, "utf8"));
@@ -269,7 +273,7 @@ jobs:
         run: |
           set -euo pipefail
           cd dist
-          sha256sum *.zip *.tar.gz > checksums.txt
+          sha256sum ./*.zip ./*.tar.gz > checksums.txt
 
       - name: Generate release notes
         shell: bash
@@ -283,6 +287,7 @@ jobs:
 
           changelog_section=""
           if [[ -f CHANGELOG.md ]]; then
+            # shellcheck disable=SC2016
             changelog_section=$(awk -v ver="$version" '
               /^## \[/ {
                 if (found) exit
@@ -293,18 +298,16 @@ jobs:
           fi
 
           if [[ -n "$changelog_section" ]]; then
-            echo "$changelog_section" >> release-notes.md
+            printf '%s\n' "$changelog_section" >> release-notes.md
           elif [[ "$ALLOW_CHANGELOG_FALLBACK" == "true" ]]; then
             prev_tag=$(git tag --sort=-v:refname | grep -A1 "^${version}$" | tail -1)
             if [[ -n "$prev_tag" && "$prev_tag" != "$version" ]]; then
-              printf '%s\n\n' "Changes since ${prev_tag}:" >> release-notes.md
-              git log --oneline --no-merges "${prev_tag}..${version}" | while read -r line; do
-                echo "- ${line}" >> release-notes.md
-              done
+              {
+                printf '%s\n\n' "Changes since ${prev_tag}:"
+                git log --oneline --no-merges "${prev_tag}..${version}" | sed 's/^/- /'
+              } >> release-notes.md
             else
-              git log --oneline -20 | while read -r line; do
-                echo "- ${line}" >> release-notes.md
-              done
+              git log --oneline -20 | sed 's/^/- /' >> release-notes.md
             fi
           else
             echo "CHANGELOG.md must contain a ## [${version}] section before release." >&2
@@ -312,16 +315,18 @@ jobs:
             exit 1
           fi
 
-          printf '%s\n' '' '---' '' '## Downloads' '' >> release-notes.md
-          printf '%s\n' '| Platform | File | Install |' >> release-notes.md
-          printf '%s\n' '|---|---|---|' >> release-notes.md
-          printf '%s\n' "| **macOS** (Apple Silicon) | [dida___VER___darwin_arm64.tar.gz](BASE_URL/dida___VER___darwin_arm64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |" >> release-notes.md
-          printf '%s\n' "| **macOS** (Intel) | [dida___VER___darwin_amd64.tar.gz](BASE_URL/dida___VER___darwin_amd64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |" >> release-notes.md
-          printf '%s\n' "| **Linux** (x86_64) | [dida___VER___linux_amd64.tar.gz](BASE_URL/dida___VER___linux_amd64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |" >> release-notes.md
-          printf '%s\n' "| **Linux** (ARM64) | [dida___VER___linux_arm64.tar.gz](BASE_URL/dida___VER___linux_arm64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |" >> release-notes.md
-          printf '%s\n' "| **Windows** (x86_64) | [dida___VER___windows_amd64.zip](BASE_URL/dida___VER___windows_amd64.zip) | PowerShell / Scoop |" >> release-notes.md
-          printf '%s\n' "| **Windows** (ARM64) | [dida___VER___windows_arm64.zip](BASE_URL/dida___VER___windows_arm64.zip) | PowerShell / Scoop |" >> release-notes.md
-          printf '%s\n' '' '### Quick Install' '' '**npm:**' '```bash' 'npm install -g @delicious233/dida-cli' '```' '' '**macOS / Linux:**' '```bash' 'curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh | sh' '```' '' '**Windows PowerShell:**' '```powershell' 'iwr https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.ps1 -UseB | iex' '```' '' '**Go:**' '```bash' 'go install github.com/REPO_PLACEHOLDER/cmd/dida@latest' '```' '' '**Self-update check:**' '```bash' 'dida upgrade --check' '```' '' '### Verify' '' '```bash' 'dida version' 'dida doctor --json' '```' '' 'SHA-256 checksums are in [`checksums.txt`](BASE_URL/checksums.txt).' >> release-notes.md
+          {
+            printf '%s\n' '' '---' '' '## Downloads' ''
+            printf '%s\n' '| Platform | File | Install |'
+            printf '%s\n' '|---|---|---|'
+            printf '%s\n' "| **macOS** (Apple Silicon) | [dida___VER___darwin_arm64.tar.gz](BASE_URL/dida___VER___darwin_arm64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |"
+            printf '%s\n' "| **macOS** (Intel) | [dida___VER___darwin_amd64.tar.gz](BASE_URL/dida___VER___darwin_amd64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |"
+            printf '%s\n' "| **Linux** (x86_64) | [dida___VER___linux_amd64.tar.gz](BASE_URL/dida___VER___linux_amd64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |"
+            printf '%s\n' "| **Linux** (ARM64) | [dida___VER___linux_arm64.tar.gz](BASE_URL/dida___VER___linux_arm64.tar.gz) | \`curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh \| sh\` |"
+            printf '%s\n' "| **Windows** (x86_64) | [dida___VER___windows_amd64.zip](BASE_URL/dida___VER___windows_amd64.zip) | PowerShell / Scoop |"
+            printf '%s\n' "| **Windows** (ARM64) | [dida___VER___windows_arm64.zip](BASE_URL/dida___VER___windows_arm64.zip) | PowerShell / Scoop |"
+            printf '%s\n' '' '### Quick Install' '' '**npm:**' '```bash' 'npm install -g @delicious233/dida-cli' '```' '' '**macOS / Linux:**' '```bash' 'curl -fsSL https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.sh | sh' '```' '' '**Windows PowerShell:**' '```powershell' 'iwr https://raw.githubusercontent.com/REPO_PLACEHOLDER/main/install.ps1 -UseB | iex' '```' '' '**Go:**' '```bash' 'go install github.com/REPO_PLACEHOLDER/cmd/dida@latest' '```' '' '**Self-update check:**' '```bash' 'dida upgrade --check' '```' '' '### Verify' '' '```bash' 'dida version' 'dida doctor --json' '```' '' 'SHA-256 checksums are in [`checksums.txt`](BASE_URL/checksums.txt).'
+          } >> release-notes.md
 
           sed -i "s|__VER__|${version}|g" release-notes.md
           sed -i "s|BASE_URL|${base_url}|g" release-notes.md
@@ -373,7 +378,11 @@ jobs:
           cd npm
           npm version "$version" --no-git-tag-version --allow-same-version
           npm pack --pack-destination "$RUNNER_TEMP"
-          tarball="$(ls "$RUNNER_TEMP"/delicious233-dida-cli-*.tgz | head -n 1)"
+          tarball="$(find "$RUNNER_TEMP" -maxdepth 1 -name 'delicious233-dida-cli-*.tgz' -print -quit)"
+          if [[ -z "$tarball" ]]; then
+            echo "npm pack did not create a tarball in ${RUNNER_TEMP}" >&2
+            exit 1
+          fi
           echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
 
       - name: Install package and smoke binary
@@ -413,6 +422,8 @@ jobs:
       - name: Prepare npm package
         id: prepare
         shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
@@ -420,6 +431,7 @@ jobs:
           npm version "$version" --no-git-tag-version --allow-same-version
           pack_json="$(npm pack --dry-run --json)"
           echo "$pack_json"
+          # shellcheck disable=SC2016
           echo "$pack_json" | node -e '
             const fs = require("fs");
             const data = JSON.parse(fs.readFileSync(0, "utf8"));
@@ -434,6 +446,12 @@ jobs:
           if npm view @delicious233/dida-cli@"$version" version >/dev/null 2>&1; then
             echo "@delicious233/dida-cli@$version already exists on npm; skipping npm publish"
             echo "already_published=true" >> "$GITHUB_OUTPUT"
+          elif [[ -z "${NODE_AUTH_TOKEN:-}" ]]; then
+            echo "NPM_TOKEN is required for npm publish" >&2
+            exit 1
+          elif ! npm whoami >/dev/null 2>&1; then
+            echo "NPM_TOKEN is invalid for npm registry authentication" >&2
+            exit 1
           else
             echo "already_published=false" >> "$GITHUB_OUTPUT"
           fi

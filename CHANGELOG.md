@@ -7,6 +7,12 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.2.4] - 2026-06-09
+
+### Fixed
+- Release workflow shell lint issues are fixed for formatting, checksum generation, release notes, and npm smoke packaging.
+- npm release authentication now fails with a clear registry error before GitHub release creation.
+
 ## [v0.2.3] - 2026-06-09
 
 ### Fixed
@@ -211,6 +217,7 @@ Initial release.
 [v0.2.1]: https://github.com/DeliciousBuding/dida-cli/compare/v0.2.0...v0.2.1
 [v0.2.2]: https://github.com/DeliciousBuding/dida-cli/compare/v0.2.1...v0.2.2
 [v0.2.3]: https://github.com/DeliciousBuding/dida-cli/compare/v0.2.2...v0.2.3
+[v0.2.4]: https://github.com/DeliciousBuding/dida-cli/compare/v0.2.3...v0.2.4
 [v0.2.0]: https://github.com/DeliciousBuding/dida-cli/compare/v0.1.16...v0.2.0
 [v0.1.16]: https://github.com/DeliciousBuding/dida-cli/compare/v0.1.15...v0.1.16
 [v0.1.15]: https://github.com/DeliciousBuding/dida-cli/compare/v0.1.14...v0.1.15

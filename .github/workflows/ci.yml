@@ -33,7 +33,7 @@ jobs:
 
       - name: Check formatting
         run: |
-          gofmt -w $(find . -name '*.go' -not -path './.git/*')
+          git ls-files '*.go' | xargs gofmt -w
           git diff --check
           git diff --exit-code
 
@@ -53,7 +53,7 @@ jobs:
         run: bash scripts/verify-release-archives.test.sh
 
       - name: Lint workflows
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}
+        run: go run "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
 
   test:
     name: Go test
@@ -98,7 +98,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Vulnerability check
-        run: go run golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} ./...
+        run: go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./...
 
   build:
     name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
