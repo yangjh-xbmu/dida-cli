@@ -159,7 +159,7 @@ dida task create ... --dry-run --json    # preview writes
 
 | Agent | Install |
 |---|---|
-| Claude Code | Copy [`skills/dida-cli/SKILL.md`](skills/dida-cli/SKILL.md) |
+| Claude Code | See [docs/claude-code.md](docs/claude-code.md) or copy [`skills/dida-cli/SKILL.md`](skills/dida-cli/SKILL.md) |
 | Codex / Others | See [docs/skill-installation.md](docs/skill-installation.md) |
 
 **Safety:** Always `--dry-run` before writes. `--yes` required for destructives. Token never leaves local disk. See [Agent Usage](docs/agent-usage.md).
@@ -167,6 +167,7 @@ dida task create ... --dry-run --json    # preview writes
 ## Docs
 
 - [Commands Reference](docs/commands.md)
+- [Claude Code And Agent Setup](docs/claude-code.md)
 - [Agent Usage](docs/agent-usage.md)
 - [API Coverage](docs/api-coverage.md)
 - [OpenAPI Setup](docs/openapi-setup.md)
