@@ -163,7 +163,7 @@ dida task create ... --dry-run --json    # 预览写入
 
 | Agent | 安装 |
 |---|---|
-| Claude Code | 复制 [`skills/dida-cli/SKILL.md`](skills/dida-cli/SKILL.md) |
+| Claude Code | 参见 [docs/claude-code.md](docs/claude-code.md)，或复制 [`skills/dida-cli/SKILL.md`](skills/dida-cli/SKILL.md) |
 | Codex / 其他 | 参见 [docs/skill-installation.md](docs/skill-installation.md) |
 
 支持 `--dry-run` 的资源写入应先预览。破坏性操作需要 `--yes`。CLI 不会打印完整 Token。参见 [Agent 使用指南](docs/agent-usage.md)。
@@ -171,6 +171,7 @@ dida task create ... --dry-run --json    # 预览写入
 ## 文档
 
 - [命令参考](docs/commands.md)
+- [Claude Code 与 Agent 设置](docs/claude-code.md)
 - [Agent 使用指南](docs/agent-usage.md)
 - [API 覆盖面](docs/api-coverage.md)
 - [OpenAPI 设置](docs/openapi-setup.zh-CN.md)
